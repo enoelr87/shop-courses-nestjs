@@ -1,0 +1,51 @@
+import { z } from 'zod';
+import * as Either from 'fp-ts/Either';
+import { UserSchema } from '../auth/domain/models/user.model';
+import { InvalidCredentialsException } from '../auth/domain/exceptions/invalid-credentials.exception';
+
+export const RegisterUserDto = UserSchema.pick({
+  cpf: true,
+  name: true,
+  lastName: true,
+  email: true,
+  phone: true,
+  password: true,
+});
+
+export type RegisterUserDto = z.infer<typeof RegisterUserDto>;
+
+export const LoginSchema = z.object({
+  username: z.string().min(11, 'CPF must be at least 11 characters'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .transform((pwd) => pwd.trim()),
+});
+
+export type LoginUserDto = z.infer<typeof LoginSchema>;
+
+export const validateRegisterInput = (
+  dto: RegisterUserDto,
+): Either.Either<InvalidCredentialsException, RegisterUserDto> => {
+  const result = RegisterUserDto.safeParse(dto);
+  return result.success
+    ? Either.right(result.data)
+    : Either.left(
+        new InvalidCredentialsException(
+          result.error.errors.map((err) => err.message).join(', '),
+        ),
+      );
+};
+
+export const validateLoginInput = (
+  dto: LoginUserDto,
+): Either.Either<InvalidCredentialsException, LoginUserDto> => {
+  const result = LoginSchema.safeParse(dto);
+  return result.success
+    ? Either.right(result.data)
+    : Either.left(
+        new InvalidCredentialsException(
+          result.error.errors.map((err) => err.message).join(', '),
+        ),
+      );
+};
